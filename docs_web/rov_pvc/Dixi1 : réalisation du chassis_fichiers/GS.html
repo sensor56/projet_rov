@@ -1,0 +1,362 @@
+function sirData()
+{
+    this.insertDataURL = "js.sddan.com/ID.d?";
+    this.searchKeywords = '';
+    this.keywords = '';
+    this.partnerID = 0;
+    this.siteID = 0;
+    this.subID = 0;
+    this.requestID = '';
+    this.userID = '';
+
+};
+/**
+ * Get HTTP location for insert data script
+ * @return {String}
+ */
+sirData.prototype.getDataURL = function(){
+    return window.location.protocol+'//'+this.insertDataURL;
+};
+
+sirData.prototype.definePartner = function(partnerID, siteID, subID){
+    this.partnerID = partnerID;
+    this.siteID = siteID;
+    this.subID = subID;
+};
+
+sirData.prototype.getALlKeywords = function(){
+    return this.searchKeywords + ' ' + this.keywords;
+};
+
+/**
+ * Add new keycords to keyword string
+ * @param keywords
+ */
+sirData.prototype.addKeyword = function(keywords){
+    this.keywords+= ' ' + keywords;
+};
+
+/**
+ * Add new keycords to search string
+ * @param keywords
+ */
+sirData.prototype.addSearchKeyword = function(keywords){
+    this.searchKeywords+= ' ' + keywords;
+};
+
+sirData.prototype.callUrlIfBlock = function(blockPixelArray, notBlockPixelArray){
+    var isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+    var isChrome = !!window.chrome && !isOpera;
+    var isFirefox = typeof InstallTrigger !== 'undefined';
+    if(isChrome || isFirefox){
+        var htmlElem = document.createElement('div');
+        htmlElem.className='AdvertContainer adblock annonces_google barre_adsense adBlock';
+        htmlElem.style.height='1px';
+        htmlElem.style.width='1px';
+        htmlElem.style.opacity='0.1';
+        document.body.appendChild(htmlElem);
+        if(htmlElem.offsetHeight == 0){
+            for (var i=0;i<blockPixelArray.length;i++)
+                this.callURL(blockPixelArray[i]);
+        }
+        else{
+            for (var i=0;i<notBlockPixelArray.length;i++)
+                this.callURL(notBlockPixelArray[i]);
+        }
+        htmlElem.parentNode.removeChild(htmlElem);
+    }
+};
+
+/**
+ * Http call
+ * @param url
+ */
+sirData.prototype.httpCall = function(url){
+    var i = new Image();
+    i.src=url.substr(0,2048);
+};
+
+sirData.prototype.httpCallWithoutProtocol = function(url){
+    var i = new Image('http://'+url);
+    i.src=url.substr(0,2048);
+};
+
+/**
+ * Send data to server
+ *
+ * @param {String}
+ */
+sirData.prototype.sendData = function(uri){
+    var img = new Image();
+    img.src = this.getDataURL()+uri;
+};
+
+/**
+ * Get content of meta data name targeted
+ * @param name
+ * @return {String}
+ */
+sirData.prototype.getMeta = function(name){
+    var metas = document.getElementsByTagName('meta');
+    for (var x=0,y=metas.length; x<y; x++) {
+        if (metas[x].name.toLowerCase() == name) {
+            return metas[x].content;
+        }
+    }
+    return '';
+};
+
+/**
+ * Same as sendData but use an objet as parameter.
+ * Objet will be used to put data in uri.
+ *
+ * @param {Object}
+ */
+sirData.prototype.sendDataArg = function(args){
+    var uri = '';
+    for(key in args){
+        uri += encodeURIComponent(key)+'='+encodeURIComponent(args[key])+'&';
+    }
+    this.sendData(uri);
+};
+
+/**
+ * Find usefull keywords into url
+ *
+ * @param url
+ * @return {String}
+ */
+sirData.prototype.getURLKeywords = function(url){
+    var r = new RegExp('^https?://([a-z.-0-9]+)/(.+)$','i');
+    var found = r.exec(url);
+    return '';
+};
+
+/**
+ * http call
+ */
+sirData.prototype.callURL = function(url){
+
+    var i = new Image();
+    i.src = url.substr(0,1023);
+};
+
+
+sirData.prototype.stripAccent = function(str)
+{
+    var rExps=[
+        {re:/[\xC0-\xC6]/g, ch:'A'},
+        {re:/[\xE0-\xE6]/g, ch:'a'},
+        {re:/[\xC8-\xCB]/g, ch:'E'},
+        {re:/[\xE8-\xEB]/g, ch:'e'},
+        {re:/[\xCC-\xCF]/g, ch:'I'},
+        {re:/[\xEC-\xEF]/g, ch:'i'},
+        {re:/[\xD2-\xD6]/g, ch:'O'},
+        {re:/[\xF2-\xF6]/g, ch:'o'},
+        {re:/[\xD9-\xDC]/g, ch:'U'},
+        {re:/[\xF9-\xFC]/g, ch:'u'},
+        {re:/[\xD1]/g, ch:'N'},
+        {re:/[\xF1]/g, ch:'n'} ];
+
+    for(var i=0, len=rExps.length; i<len; i++)
+        str=str.replace(rExps[i].re, rExps[i].ch);
+
+    return str;
+};
+
+/**
+ * Launch data app
+ */
+sirData.prototype.run = function(){
+    // quit if this function has already been called
+    if (arguments.callee.done) return;
+    // flag this function so we don't do the same thing twice
+    arguments.callee.done = true;
+    // kill the timer
+    //if (_timer) clearInterval(_timer);
+    var args ={
+        ri:this.requestID, // Request ID inserted into mongodb!
+        // partner, site and sub id and key
+        pa:this.partnerID, // partner id
+        si:this.siteID, // site id
+        su:this.subID, // subid
+        userID:this.userID,
+        v:1, // Protocol version
+        t:this.stripAccent(document.title).replace(/[^\w -.]/g,'').replace(/[ ]{2,}/g,' ').substr(0,150), // page title
+        k:this.keywords,
+        u: window.location.href,
+        r:document.referrer,
+        s:this.searchKeywords
+
+
+    };
+    //this.sendDataArg(args);
+};
+
+/**
+ * Find keywords into node info
+ * nodeInfo structure must be an array like:
+ * [
+ *  { css:'', item:0 }
+ * ]
+ * @param nodeInfo
+ */
+sirData.prototype.findHTMLNode = function(nodeInfo){
+    for(i=0;i<nodeInfo.length;i++){
+        if(nodeInfo[i].css == undefined)
+            return false;
+        var found = this.getElementsBySelector(nodeInfo[i].css);
+        if(found && found.length > 0){
+            if(nodeInfo[i].item == undefined)
+                for(j=0;j<found.length;j++)
+                    this.addKeyword(found[j].text != undefined ? found[j].text : found[j].innerHTML);
+            else
+            if(nodeInfo[i].item != undefined && found[nodeInfo[i].item] != undefined)
+                this.addKeyword(found[nodeInfo[i].item].text != undefined ? found[nodeInfo[i].item].text : found[nodeInfo[i].item].innerHTML);
+        }
+        return false;
+    }
+};
+
+//Get DOM elements based on the given CSS Selector - V 1.00.A Beta
+//http://www.openjs.com/scripts/dom/css_selector/
+sirData.prototype.getElementsBySelector = function (all_selectors) {
+    var selected = [];
+    if(!document.getElementsByTagName) return selected;
+    all_selectors = all_selectors.replace(/\s*([^\w])\s*/g,"$1");//Remove the 'beutification' spaces
+    var selectors = all_selectors.split(",");
+    // Grab all of the tagName elements within current context
+    var getElements = function(context,tag) {
+        if (!tag) tag = '*';
+        // Get elements matching tag, filter them for class selector
+        var found = new Array;
+        for (var a=0,len=context.length; con=context[a],a<len; a++) {
+            var eles;
+            if (tag == '*') eles = con.all ? con.all : con.getElementsByTagName("*");
+            else eles = con.getElementsByTagName(tag);
+
+            for(var b=0,leng=eles.length;b<leng; b++) found.push(eles[b]);
+        }
+        return found;
+    };
+
+    COMMA:
+        for(var i=0,len1=selectors.length; selector=selectors[i],i<len1; i++) {
+            var context = new Array(document);
+            var inheriters = selector.split(" ");
+
+            SPACE:
+                for(var j=0,len2=inheriters.length; element=inheriters[j],j<len2;j++) {
+                    //This part is to make sure that it is not part of a CSS3 Selector
+                    var left_bracket = element.indexOf("[");
+                    var right_bracket = element.indexOf("]");
+                    var pos = element.indexOf("#");//ID
+                    if(pos+1 && !(pos>left_bracket&&pos<right_bracket)) {
+                        var parts = element.split("#");
+                        var tag = parts[0];
+                        var id = parts[1];
+                        var ele = document.getElementById(id);
+                        if(!ele || (tag && ele.nodeName.toLowerCase() != tag)) { //Specified element not found
+                            continue COMMA;
+                        }
+                        context = new Array(ele);
+                        continue SPACE;
+                    }
+
+                    pos = element.indexOf(".");//Class
+                    if(pos+1 && !(pos>left_bracket&&pos<right_bracket)) {
+                        var parts = element.split('.');
+                        var tag = parts[0];
+                        var class_name = parts[1];
+
+                        var found = getElements(context,tag);
+                        context = new Array;
+                        for (var l=0,len=found.length; fnd=found[l],l<len; l++) {
+                            if(fnd.className && fnd.className.match(new RegExp('(^|\s)'+class_name+'(\s|$)'))) context.push(fnd);
+                        }
+                        continue SPACE;
+                    }
+
+                    if(element.indexOf('[')+1) {//If the char '[' appears, that means it needs CSS 3 parsing
+                        // Code to deal with attribute selectors
+                        if (element.match(/^(\w*)\[(\w+)([=~\|\^\$\*]?)=?['"]?([^\]'"]*)['"]?\]$/)) {
+                            var tag = RegExp.$1;
+                            var attr = RegExp.$2;
+                            var operator = RegExp.$3;
+                            var value = RegExp.$4;
+                        }
+                        var found = getElements(context,tag);
+                        context = new Array;
+                        for (var l=0,len=found.length; fnd=found[l],l<len; l++) {
+                            if(operator=='=' && fnd.getAttribute(attr) != value) continue;
+                            if(operator=='~' && !fnd.getAttribute(attr).match(new RegExp('(^|\\s)'+value+'(\\s|$)'))) continue;
+                            if(operator=='|' && !fnd.getAttribute(attr).match(new RegExp('^'+value+'-?'))) continue;
+                            if(operator=='^' && fnd.getAttribute(attr).indexOf(value)!=0) continue;
+                            if(operator=='$' && fnd.getAttribute(attr).lastIndexOf(value)!=(fnd.getAttribute(attr).length-value.length)) continue;
+                            if(operator=='*' && !(fnd.getAttribute(attr).indexOf(value)+1)) continue;
+                            else if(!fnd.getAttribute(attr)) continue;
+                            context.push(fnd);
+                        }
+
+                        continue SPACE;
+                    }
+
+                    //Tag selectors - no class or id specified.
+                    var found = getElements(context,element);
+                    context = found;
+                }
+            for (var o=0,len=context.length;o<len; o++) selected.push(context[o]);
+        }
+    return selected;
+};
+
+sirData.prototype.addAxciomTag = function (account_id) {
+    var tag = document.createElement('iframe');
+    tag.name='_rlcdn';
+    tag.width=0;
+    tag.height=0;
+    tag.src='//rc.rlcdn.com/'+account_id+'.html';
+    tag.frameborder = 0;
+    tag.style.display='none';
+    document.getElementsByTagName('body')[0].appendChild(tag);
+};
+
+function addScriptPartner(targetDocument,scriptParner){
+    var js = targetDocument.createElement('script');
+    js.type = 'text/javascript';
+    js.text = scriptParner;
+    targetDocument.getElementsByTagName('body')[0].appendChild(js);
+}
+
+
+
+
+var _sdAD = new sirData();
+_sdAD.userID="14092720PTI7JOuL1Ie9YMsfsqQz6CLG";
+_sdAD.insertDataURL='/GS.d?';
+_sdAD.keywords = "";
+_sdAD.searchKeywords = "";
+
+        _sdAD.httpCall("//ib.adnxs.com/seg?add=2561308:20733&t=2");
+        _sdAD.httpCall("//big.sddan.com/diffx/track/compgb.ashx?exptime=10&keyword=pid_20733%3Bcid_62%3Bcid_167%3Bcid_166%3Bcid_135");
+
+var scriptPartner = "";
+
+
+
+
+if(window.location.protocol == 'http:' || window.location.protocol == 'https:'){
+    if(scriptPartner)
+        addScriptPartner(document,scriptPartner);
+    _sdAD.run();
+    _sdAD.addAxciomTag('387896');
+}
+else if(window.location.protocol == 'about:' || window.location.protocol=='javascript:'){
+    if(scriptPartner){
+        addScriptPartner(window.parent.document,scriptPartner);
+    }
+}
+var _pusq=_pusq || [];var idp = '985d06e7d79ab860';var _pusVisitorData = {"address": {"city": "?", "country": "FR"}};
+var _pusVisitorID = '14092720PTI7JOuL1Ie9YMsfsqQz6CLG';var _pusCustomData = {"cid_489": 500, "cid_135": 1000, "cid_334": 500, "cid_335": 800, "cid_336": 500, "cid_131": 900, "cid_68": 800, "cid_57": 500, "cid_193": 500, "cid_19": 800, "cid_165": 900, "cid_167": 1000, "cid_166": 1000, "cid_292": 700, "cid_105": 500, "cid_127": 800, "cid_187": 600, "cid_26": 700, "cid_24": 700, "cid_45": 400, "cid_180": 600, "cid_62": 1000, "cid_133": 900};var _sha1 = '';var _md5 = '';(function(){ var u= (('https:'==document.location.protocol)?'https://secure.':'http://www.')+'audienceinsights.net/';var su=u.replace(/www|secure/,'static');_pusq.push(['setIdp', idp]);_pusq.push(['setTrackerUrl', u+'p']);_pusq.push(['setTrackerStaticUrl', su]);_pusq.push(['setVisitorData', _pusVisitorData]);_pusq.push(['setProviderId', _pusVisitorID]);_pusq.push(['setCustomData', _pusCustomData]);if(_md5){_pusq.push(['setHashedExternalId', 'email', _md5, 'MD5']);}
+if(_sha1){_pusq.push(['setHashedExternalId', 'email', _sha1, 'SHA1']);}
+_pusq.push(['send']);var s=document.createElement('script');s.type='text/javascript';s.src=su+'t.js';s.defer=true; s.async=true;var p=document.getElementsByTagName('script')[0];p.parentNode.insertBefore(s,p); })();
